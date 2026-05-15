@@ -9864,35 +9864,40 @@ function setCountry(p){
 // COUNTRY CARDS
 // ═══════════════════════════════════════════════════════
 function renderCountryCards(){
-  // Mismo filtro que filtL() para incluir __total__ (excluye sólo Ecuador)
-  const base=DL.filter(d=>d[3]!=='ECUADOR'&&(fPer==='ALL'||d[4]===fPer)&&(fMod==='ALL'||d[0]===fMod)&&(fNeg==='ALL'||d[7]===fNeg));
-  // Espeja la lógica del árbol de renderMatrix:
-  //   __detail__ → solo hoja (no agrega a CDG/P0)
-  //   __ref__    → solo Realoc
-  //   resto      → agrega CDG y P0 (incluye __total__)
-  function sum(rows){
-    let p0=0,r=0,c=0;
-    rows.forEach(d=>{
-      const isRef=d[7]==='__ref__',isDetail=d[7]==='__detail__';
-      const l=d[2];
-      const isCO=(l==='Cut off')||(l==='Revenues Bonificadas (M y M-1)')||(l==='Provision bonificaciones M (futuras)')||(l==='Reversa Provision bonificaciones M-1');
-      if(!isRef&&!isDetail){c+=d[5];if(isCO){r+=(-d[6]);}else{p0+=d[6];}}
-      else if(isRef){r+=d[6];}
-    });
-    return{p0,r,c};
-  }
-  // % variación = (P&L Comparable - CDG) / |P&L Comparable|  →  igual que "Var. % Comp." de la matriz
-  function vPct(s){const mpc=s.p0+s.r;return(!mpc||mpc===0)?null:((mpc-s.c)/Math.abs(mpc))*100;}
-  const tot=sum(base);
-  const vTot=vPct(tot);
-  function vcls(v){return v===null?'':Math.abs(v)<5?'cvg':Math.abs(v)<15?'cvw':'cvd';}
+  // Construye árbol por país con exactamente la misma lógica que renderMatrix
+  // → P&L y variación de las cards son idénticos a los valores de nivel 1 de la matriz
+  const cardTree={};
+  DL.forEach(d=>{
+    const[mod,sub,last,pais,per,cdg,pnl,subbu]=d;
+    if(pais==='ECUADOR')return;
+    if(fPer!=='ALL'&&per!==fPer)return;
+    if(fMod!=='ALL'&&mod!==fMod)return;
+    if(fNeg!=='ALL'&&subbu!==fNeg)return;
+    // Mismas exclusiones que renderMatrix
+    if(last&&last===sub)return;
+    if(last==='Shipping Ops Kangu'||last==='Shipping Revenues Kangu')return;
+    if(last==='Flat Fee (Total)')return;
+    const isBPPleaf=last&&last.startsWith('BPP - Costo Envios');
+    const isRef=subbu==='__ref__',isDetail=subbu==='__detail__';
+    if(isBPPleaf&&!isRef&&!isDetail)return;
+    const isCO=(last==='Cut off')||(last==='Revenues Bonificadas (M y M-1)')||(last==='Provision bonificaciones M (futuras)')||(last==='Reversa Provision bonificaciones M-1');
+    if(!cardTree[pais])cardTree[pais]={p0:0,r:0,c:0};
+    // Misma lógica de agregación: __detail__ solo hoja, __ref__ solo Realoc, resto agrega CDG+P0
+    if(!isRef&&!isDetail){
+      cardTree[pais].c+=cdg;
+      if(isCO){cardTree[pais].r+=(-pnl);}else{cardTree[pais].p0+=pnl;}
+    }else if(isRef){
+      cardTree[pais].r+=pnl;
+    }
+  });
+  // Variación = (SUM P&L / SUM CDG) - 1
+  function vPct(t){return(!t.c||t.c===0)?null:((t.p0/t.c)-1)*100;}
   function vcls2(v){return v===null?'cvn':Math.abs(v)<5?'cvg':Math.abs(v)<15?'cvw':'cvd';}
   function pill(v){return`<span class="ccrd-vpill">${v!==null?v.toFixed(1)+'%':'—'}</span>`;}
   let html='';
   COUNTRIES.forEach(p=>{
-    const rows=base.filter(d=>d[3]===p);
-    if(!rows.length)return;
-    const s=sum(rows);
+    const s=cardTree[p];
+    if(!s)return;
     const vp=vPct(s);
     const img=FLAG_IMGS[p]?`<img src="${FLAG_IMGS[p]}" alt="${p}" style="width:40px;height:27px;object-fit:cover;border-radius:4px;border:1px solid #E5E7EB">`:`<span style="font-size:26px">${FLAGS[p]||''}</span>`;
     html+=`<div class="ccrd ${fPais===p?'active':''}" onclick="setCountry('${p}')">
