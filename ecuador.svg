@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 54" width="80" height="54">
+  <rect width="80" height="27.0" fill="#FFD100"/>
+  <rect y="27.0" width="80" height="13.5" fill="#003DA5"/>
+  <rect y="40.5" width="80" height="13.5" fill="#EF3340"/>
+  <!-- Escudo simplificado -->
+  <ellipse cx="40" cy="27" rx="5" ry="6" fill="#003DA5" stroke="white" stroke-width="0.5"/>
+  <text x="40" y="29" text-anchor="middle" font-size="5" fill="#FFD100">EC</text>
+</svg>
